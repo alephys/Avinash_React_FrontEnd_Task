@@ -2,46 +2,48 @@ import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 
+import SideBar from "../components/SideBar";
+import NavBar from "../components/NavBar";
+
 const AdminDashboard = () => {
   const [messages, setMessages] = useState([]);
   const [topicName, setTopicName] = useState("");
   const [partitions, setPartitions] = useState(1);
   const [pendingRequests, setPendingRequests] = useState([]);
   const [createdTopics, setCreatedTopics] = useState([]);
-  const [selectedTopic, setSelectedTopic] = useState(null);
   const [error, setError] = useState("");
-  const [username, setUsername] = useState("Admin");
+  // const [username, setUsername] = useState("Admin");
 
   const navigate = useNavigate();
 
-  // ------------------ Fetch initial dashboard data ------------------
+  // Fetch initial dashboard data 
   useEffect(() => {
     axios
       .get("/api/admin_dashboard_api/")
       .then((res) => {
         setPendingRequests(res.data.pending_requests || []);
         setCreatedTopics(res.data.created_topics || []);
-        setUsername(res.data.username || "Admin");
+        // setUsername(res.data.username || "Admin");
       })
       .catch((err) => console.error("Failed to fetch admin data:", err));
   }, []);
 
-  // ------------------ Logout ------------------
-  const handleLogout = async () => {
-    try {
-      const { data } = await axios.post("/api/logout_api/");
-      if (data.success) {
-        navigate("/login");
-      } else {
-        setMessages([{ text: "Logout failed", type: "error" }]);
-      }
-    } catch (err) {
-      console.error(err);
-      setMessages([{ text: "Logout request failed", type: "error" }]);
-    }
-  };
+  //  Logout 
+  // const handleLogout = async () => {
+  //   try {
+  //     const { data } = await axios.post("/api/logout_api/");
+  //     if (data.success) {
+  //       navigate("/login");
+  //     } else {
+  //       setMessages([{ text: "Logout failed", type: "error" }]);
+  //     }
+  //   } catch (err) {
+  //     console.error(err);
+  //     setMessages([{ text: "Logout request failed", type: "error" }]);
+  //   }
+  // };
 
-  // ------------------ Create new topic ------------------
+  // Create new topic 
   const handleCreateTopic = async (e) => {
     e.preventDefault();
     setError("");
@@ -134,72 +136,32 @@ const AdminDashboard = () => {
   };
 
   // ------------------ View topic details ------------------
-  const handleViewTopic = async (topicName) => {
-    try {
-      const res = await fetch(`/api/topic/${topicName}/`);
-      const data = await res.json();
-      setSelectedTopic(data);
-    } catch (err) {
-      setMessages([{ text: "Unable to fetch topic details", type: "error" }]);
-    }
-  };
+  // const handleViewTopic = async (topicName) => {
+  //   try {
+  //     const res = await fetch(`/api/topic/${topicName}/`);
+  //     const data = await res.json();
+  //     setSelectedTopic(data);
+  //   } catch (err) {
+  //     setMessages([{ text: "Unable to fetch topic details", type: "error" }]);
+  //   }
+  // };
 
-  // ------------------ JSX Render ------------------
+  
   return (
     <div className="max-w-10xl mx-auto p-5 font-sans">
       {/* Header */}
-      <header className="flex justify-center items-center mb-5 py-3 border-b border-gray-300 relative">
-        <h1 className="text-3xl font-bold text-gray-800">
-          Kafka Topic Manager
-        </h1>
-        <div className="absolute top-2 right-5 flex items-center gap-3">
-          <span className="text-gray-700">{username}</span>
-          <button
-            onClick={handleLogout}
-            className="bg-red-600 hover:bg-red-700 text-white px-4 py-1.5 rounded text-sm"
-          >
-            Logout
-          </button>
-        </div>
-      </header>
+      <NavBar />
 
       {/* Content Wrapper */}
       <div className="flex flex-col md:flex-row">
-
         {/* Sidebar */}
-        <aside className="w-full md:w-52 p-5 bg-gray-50 border-r border-gray-300 mb-5 md:mb-0 md:mr-5 rounded-md md:rounded-none">
-          <h2 className="text-lg font-semibold text-gray-700 mb-3">
-            My Topics
-          </h2>
-
-          {createdTopics.length > 0 ? (
-            <ul className="space-y-2">
-              {createdTopics.map((topic) => (
-                <li
-                  key={topic.id}
-                  className="bg-white shadow-sm border rounded-lg p-2 text-gray-700 hover:bg-gray-100 transition"
-                >
-                  <div className="font-medium">{topic.name}</div>
-                  <div className="text-sm text-gray-500">
-                    Partitions: {topic.partitions}
-                  </div>
-                </li>
-              ))}
-            </ul>
-          ) : (
-            <p className="text-gray-500 text-center">
-              No topics yet. Create one!
-            </p>
-          )}
-        </aside>
-
+        <SideBar />
 
         {/* Main Content */}
         <main className="flex-1 p-5 bg-gray-100 rounded-md">
           <h2 className="text-2xl font-semibold text-gray-700 mb-4">
             Admin Dashboard
           </h2>
-
 
           {/* Messages */}
           {messages.map((msg, i) => (
@@ -353,10 +315,16 @@ const AdminDashboard = () => {
                       </td>
                       <td className="px-6 py-4 text-sm font-medium space-x-2">
                         <button
-                          onClick={() => handleViewTopic(topic.name)}
-                          className="bg-green-600 hover:bg-green-700 text-white px-3 py-1 rounded text-xs mr-2"
+                          onClick={() => navigate(`/topic/${topic.name}`)}
+                          className="bg-green-600 hover:bg-green-700 text-white px-3 py-1 rounded text-sm"
                         >
                           View
+                        </button>
+                        <button
+                          onClick={() => navigate("/alterTopic")}
+                          className="bg-orange-400 hover:bg-orange-500 text-white px-3 py-1 rounded text-sm"
+                        >
+                          Alter
                         </button>
                         <button
                           onClick={() => handleDeleteTopic(topic.id)}
