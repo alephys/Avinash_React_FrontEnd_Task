@@ -8,11 +8,8 @@
 
 
 /**
- * The above functions use async/await to fetch created topics from different API endpoints for admin
- * and user roles.
- * @returns The `fetchCreatedTopics` function is returning the data of created topics fetched from the
- * Admin dashboard API endpoint. If successful, it returns `res.data.created_topics`, otherwise an
- * empty array `[]` is returned.
+ * The below functions use async/await to fetch created topics from different API endpoints for admin
+    and user roles
  */
     export const fetchCreatedTopics = async () => {
     try {
