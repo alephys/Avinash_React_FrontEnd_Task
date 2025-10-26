@@ -7,6 +7,7 @@ import Login from './pages/Login';
 import Home from './pages/Home';
 import AdminDashboard from './pages/AdminDashboard';
 import TopicView from './components/TopicView';
+import AlterTopic from './components/AlterTopic';
 
 function App() {
 
@@ -19,6 +20,7 @@ function App() {
           <Route path="/home" element={<Home />} />
           <Route path="/admin-dashboard" element={<AdminDashboard />} />
           <Route path="/topic/:topicName" element={<TopicView />} />
+          <Route path="/alter-topic/:topicName" element={<AlterTopic />} />
         </Routes>
       </BrowserRouter>
     </>

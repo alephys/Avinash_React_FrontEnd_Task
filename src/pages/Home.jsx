@@ -3,6 +3,8 @@
     import axios from "axios";
     import SideBar from "../components/SideBar";
     import NavBar from "../components/NavBar";
+    import { fetchUserTopics } from "../api";
+
 
     const Home = () => {
       const [messages, setMessages] = useState([]);
@@ -15,6 +17,7 @@
       const navigate = useNavigate();
 
       //  Fetch dashboard data
+
       useEffect(() => {
         const fetchDashboard = async () => {
           try {
@@ -32,7 +35,23 @@
         fetchDashboard();
       }, []);
 
-      // Submit a new topic request 
+      //   Listen for real-time updates ------------------
+      useEffect(() => {
+        const refreshData = async () => {
+          try {
+            const { data } = await axios.get("/api/home_api/");
+            setUncreatedRequests(data.uncreated_requests || []);
+            setCreatedTopics(data.created_topics || []);
+          } catch (err) {
+            console.error("Failed to auto-refresh user dashboard:", err);
+          }
+        };
+
+        window.addEventListener("dataUpdated", refreshData);
+        return () => window.removeEventListener("dataUpdated", refreshData);
+      }, []);
+
+      // Submit a new topic request
 
       const handleSubmit = async (e) => {
         e.preventDefault();
@@ -50,10 +69,12 @@
           setMessages([
             { text: data.message, type: data.success ? "success" : "error" },
           ]);
-
           if (data.success) {
             setTopicName("");
             setPartitions(1);
+            const topics = await fetchUserTopics(); // refresh topic list
+            setCreatedTopics(topics);
+            window.dispatchEvent(new Event("dataUpdated"));
           }
         } catch (err) {
           console.error(
@@ -70,63 +91,57 @@
         }
       };
 
-      //  ---------------create topic button ------------------
+      //  Create topic from approved request
 
       const handleCreateTopic = async (id) => {
         try {
           const { data } = await axios.post(`/api/create_topic_api/${id}/`);
-          setMessages([
-            { text: data.message, type: data.success ? "success" : "error" },
-          ]);
+
+          if (data.success) {
+            setMessages([{ text: data.message, type: "success" }]);
+
+            const updatedTopics = await fetchUserTopics();
+            setCreatedTopics(updatedTopics);
+
+            // const topics = await fetchUserTopics();
+            // setCreatedTopics(topics);
+
+            window.dispatchEvent(new Event("dataUpdated"));
+          }
+          // setMessages([
+          //   { text: data.message, type: data.success ? "success" : "error" },
+          // ]);
         } catch (err) {
           console.error(err);
           setMessages([{ text: "Topic creation failed", type: "error" }]);
         }
       };
 
-      // created Topic table
 
-      // // ------------------ View topic details ------------------
-      // const handleViewTopic = async (topicName) => {
-      //     try {
-      //     const { data } = await axios.get(`/api/topic/${topicName}/`);
-      //     setSelectedTopic(data);
-      //     } catch (err) {
-      //     console.error(err);
-      //     setMessages([{ text: "Unable to fetch topic details", type: "error" }]);
-      //     }
-      // };
-
-      // ------------------ Delete created topic ------------------
+      //  Delete created topic 
       const handleDeleteTopic = async (id) => {
         try {
           const { data } = await axios.delete(`/api/delete_topic/${id}/`);
           setMessages([
             { text: data.message, type: data.success ? "success" : "error" },
           ]);
+
           if (data.success) {
-            setCreatedTopics((prev) => prev.filter((t) => t.id !== id));
+            const topics = await fetchUserTopics();
+            setCreatedTopics(topics);
           }
+
+          window.dispatchEvent(new Event("dataUpdated"));
+
+          // if (data.success) {
+          //   setCreatedTopics((prev) => prev.filter((t) => t.id !== id));
+          // }
         } catch (err) {
           console.error(err);
           setMessages([{ text: "Delete failed", type: "error" }]);
         }
       };
 
-      // ------------------ Logout user ------------------
-      // const handleLogout = async () => {
-      //   try {
-      //     const { data } = await axios.post("/api/logout_api/");
-      //     if (data.success) {
-      //       navigate("/login");
-      //     } else {
-      //       setMessages([{ text: "Logout failed", type: "error" }]);
-      //     }
-      //   } catch (err) {
-      //     console.error(err);
-      //     setMessages([{ text: "Logout request failed", type: "error" }]);
-      //   }
-      // };
 
       return (
         <div className="max-w-10xl mx-auto p-5 font-sans">
@@ -136,7 +151,7 @@
           {/* Content Wrapper */}
           <div className="flex flex-col md:flex-row">
             {/* Sidebar */}
-            <SideBar  />
+            <SideBar />
 
             {/* Main content */}
             <main className="flex-1 p-5 bg-gray-100 rounded-md">
@@ -266,7 +281,9 @@
                             </button>
 
                             <button
-                              onClick={() => navigate("/alterTopic")}
+                              onClick={() =>
+                                navigate(`/alter-topic/${topic.name}`)
+                              }
                               className="bg-orange-400 hover:bg-orange-500 text-white px-3 py-1 rounded text-sm"
                             >
                               Alter

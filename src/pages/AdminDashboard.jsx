@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
-
 import SideBar from "../components/SideBar";
 import NavBar from "../components/NavBar";
+import { fetchCreatedTopics } from "../api";
 
 const AdminDashboard = () => {
   const [messages, setMessages] = useState([]);
@@ -12,38 +12,45 @@ const AdminDashboard = () => {
   const [pendingRequests, setPendingRequests] = useState([]);
   const [createdTopics, setCreatedTopics] = useState([]);
   const [error, setError] = useState("");
-  // const [username, setUsername] = useState("Admin");
 
   const navigate = useNavigate();
 
-  // Fetch initial dashboard data 
+  // Fetch initial dashboard data
+
   useEffect(() => {
-    axios
-      .get("/api/admin_dashboard_api/")
-      .then((res) => {
-        setPendingRequests(res.data.pending_requests || []);
-        setCreatedTopics(res.data.created_topics || []);
-        // setUsername(res.data.username || "Admin");
-      })
-      .catch((err) => console.error("Failed to fetch admin data:", err));
+    const fetchDashboard = async () => {
+      try {
+        const { data } = await axios.get("/api/admin_dashboard_api/");
+        setPendingRequests(data.pending_requests || []);
+        setCreatedTopics(data.created_topics || []);
+      } catch (err) {
+        console.error("Failed to fetch admin data:", err);
+      }
+    };
+
+    fetchDashboard(); // initial fetch
+
+    const interval = setInterval(fetchDashboard, 1000); // refresh 
+    return () => clearInterval(interval);
   }, []);
 
-  //  Logout 
-  // const handleLogout = async () => {
-  //   try {
-  //     const { data } = await axios.post("/api/logout_api/");
-  //     if (data.success) {
-  //       navigate("/login");
-  //     } else {
-  //       setMessages([{ text: "Logout failed", type: "error" }]);
-  //     }
-  //   } catch (err) {
-  //     console.error(err);
-  //     setMessages([{ text: "Logout request failed", type: "error" }]);
-  //   }
-  // };
+  // Listen for global updates 
+  useEffect(() => {
+    const refreshData = async () => {
+      try {
+        const { data } = await axios.get("/api/admin_dashboard_api/");
+        setPendingRequests(data.pending_requests || []);
+        setCreatedTopics(data.created_topics || []);
+      } catch (err) {
+        console.error("Failed to auto-refresh admin dashboard:", err);
+      }
+    };
 
-  // Create new topic 
+    window.addEventListener("dataUpdated", refreshData);
+    return () => window.removeEventListener("dataUpdated", refreshData);
+  }, []);
+
+  // Create new topic
   const handleCreateTopic = async (e) => {
     e.preventDefault();
     setError("");
@@ -59,15 +66,11 @@ const AdminDashboard = () => {
         setMessages([{ text: data.message, type: "success" }]);
         setTopicName("");
         setPartitions(1);
+        const updatedTopics = await fetchCreatedTopics();
+        setCreatedTopics(updatedTopics);
 
-        // Add newly created topic to Created Topics Table instantly
-        const newTopic = {
-          id: data.topic_id, // ensure backend returns topic_id
-          name: data.topic_name,
-          partitions: data.partitions,
-          created_by__username: data.created_by || "Admin",
-        };
-        setCreatedTopics((prev) => [...prev, newTopic]);
+        window.dispatchEvent(new Event("dataUpdated"));
+
       } else {
         setError(data.message || "Failed to create topic");
       }
@@ -76,7 +79,6 @@ const AdminDashboard = () => {
       setError("Error while creating topic");
     }
   };
-
 
   // Approve request
   const handleApprove = async (id) => {
@@ -91,8 +93,7 @@ const AdminDashboard = () => {
         // Remove from pending list
         setPendingRequests((prev) => prev.filter((req) => req.id !== id));
 
-        //  Send approved topic details to Approved Topics table (Home.jsx)
-        
+        window.dispatchEvent(new Event("dataUpdated"));
       }
     } catch (err) {
       console.error("Approval error:", err);
@@ -109,6 +110,7 @@ const AdminDashboard = () => {
       setMessages([{ text: message, type: "error" }]);
       if (res.data.success) {
         setPendingRequests(pendingRequests.filter((req) => req.id !== id));
+        window.dispatchEvent(new Event("dataUpdated"));
       }
     } catch (err) {
       console.error("Decline error:", err);
@@ -116,8 +118,7 @@ const AdminDashboard = () => {
     }
   };
 
-
-  // ------------------ Delete topic ------------------
+  //  Delete topic 
   const handleDeleteTopic = async (id) => {
     try {
       const res = await axios.delete(`/api/delete_topic/${id}/`);
@@ -127,34 +128,23 @@ const AdminDashboard = () => {
           type: res.data.success ? "success" : "error",
         },
       ]);
+
       if (res.data.success) {
-        setCreatedTopics(createdTopics.filter((topic) => topic.id !== id));
+        const updatedTopics = await fetchCreatedTopics();
+        setCreatedTopics(updatedTopics);
+        window.dispatchEvent(new Event("dataUpdated"));
       }
     } catch (err) {
       setMessages([{ text: "Delete failed", type: "error" }]);
     }
   };
 
-  // ------------------ View topic details ------------------
-  // const handleViewTopic = async (topicName) => {
-  //   try {
-  //     const res = await fetch(`/api/topic/${topicName}/`);
-  //     const data = await res.json();
-  //     setSelectedTopic(data);
-  //   } catch (err) {
-  //     setMessages([{ text: "Unable to fetch topic details", type: "error" }]);
-  //   }
-  // };
-
-  
   return (
     <div className="max-w-10xl mx-auto p-5 font-sans">
-      {/* Header */}
       <NavBar />
 
       {/* Content Wrapper */}
       <div className="flex flex-col md:flex-row">
-        {/* Sidebar */}
         <SideBar />
 
         {/* Main Content */}
@@ -163,10 +153,9 @@ const AdminDashboard = () => {
             Admin Dashboard
           </h2>
 
-          {/* Messages */}
           {messages.map((msg, i) => (
             <div
-              key={i}
+              key={`${msg.type}-${i}`}
               className={`mb-3 p-3 rounded text-sm font-medium ${
                 msg.type === "success"
                   ? "bg-green-100 text-green-700"
@@ -244,7 +233,7 @@ const AdminDashboard = () => {
                   </thead>
                   <tbody className="bg-white divide-y divide-gray-200">
                     {pendingRequests.map((req) => (
-                      <tr key={req.id}>
+                      <tr key={req.id || req.request_id}>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                           {req.topic_name}
                         </td>
@@ -302,8 +291,8 @@ const AdminDashboard = () => {
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
-                  {createdTopics.map((topic) => (
-                    <tr key={topic.id}>
+                  {createdTopics.map((topic, index) => (
+                    <tr key={`{topic.id || topic.name}-${index}`}>
                       <td className="px-6 py-4 text-sm text-gray-900">
                         {topic.name}
                       </td>
@@ -321,7 +310,7 @@ const AdminDashboard = () => {
                           View
                         </button>
                         <button
-                          onClick={() => navigate("/alterTopic")}
+                          onClick={() => navigate(`/alter-topic/${topic.name}`)}
                           className="bg-orange-400 hover:bg-orange-500 text-white px-3 py-1 rounded text-sm"
                         >
                           Alter
