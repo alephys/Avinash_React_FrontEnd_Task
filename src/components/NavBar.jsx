@@ -46,8 +46,8 @@ const NavBar = () => {
     role === "admin" ?  `${username} (superUser)` : ` ${username}`;
 
   return (
-    <header className="flex justify-center items-center py-2 border-b border-gray-300 relative">
-      <h1 className="text-3xl font-bold text-gray-800">Kafka Topic Manager</h1>
+    <header className="flex justify-center items-center py-4  border-gray-300 relative bg-blue-950">
+      <h1 className="text-3xl font-bold text-white color:blue">Kafka Topic Manager</h1>
 
       <div className="absolute right-5 flex items-center gap-3">
         <Menu as="div" className="relative inline-block text-left">

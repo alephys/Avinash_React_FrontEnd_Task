@@ -95,6 +95,7 @@ const AdminDashboard = () => {
 
         window.dispatchEvent(new Event("dataUpdated"));
       }
+
     } catch (err) {
       console.error("Approval error:", err);
       setMessages([{ text: "Failed to approve request", type: "error" }]);
@@ -140,7 +141,7 @@ const AdminDashboard = () => {
   };
 
   return (
-    <div className="max-w-10xl mx-auto p-5 font-sans">
+    <div className="max-w-10xl mx-auto font-sans">
       <NavBar />
 
       {/* Content Wrapper */}

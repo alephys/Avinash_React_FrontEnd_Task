@@ -35,7 +35,7 @@
         fetchDashboard();
       }, []);
 
-      //   Listen for real-time updates ------------------
+      //   Listen for real-time updates
       useEffect(() => {
         const refreshData = async () => {
           try {
@@ -103,8 +103,8 @@
             const updatedTopics = await fetchUserTopics();
             setCreatedTopics(updatedTopics);
 
-            // const topics = await fetchUserTopics();
-            // setCreatedTopics(topics);
+            const topics = await fetchUserTopics();
+            setCreatedTopics(topics);
 
             window.dispatchEvent(new Event("dataUpdated"));
           }
@@ -144,7 +144,7 @@
 
 
       return (
-        <div className="max-w-10xl mx-auto p-5 font-sans">
+        <div className="max-w-10xl mx-auto font-sans">
           {/* Header */}
           <NavBar />
 
