@@ -33,7 +33,11 @@
           }
         };
         fetchDashboard();
-      }, []);
+        const interval = setInterval(fetchDashboard, 1000);
+
+        return () => clearInterval(interval); // Cleanup interval on unmount
+        }, []);
+      
 
       //   Listen for real-time updates
       useEffect(() => {
@@ -65,7 +69,7 @@
             withCredentials: true,
             headers: { "Content-Type": "application/json" },
           });
-
+          
           setMessages([
             { text: data.message, type: data.success ? "success" : "error" },
           ]);
@@ -92,7 +96,6 @@
       };
 
       //  Create topic from approved request
-
       const handleCreateTopic = async (id) => {
         try {
           const { data } = await axios.post(`/api/create_topic_api/${id}/`);
@@ -117,7 +120,6 @@
         }
       };
 
-
       //  Delete created topic 
       const handleDeleteTopic = async (id) => {
         try {
@@ -141,7 +143,6 @@
           setMessages([{ text: "Delete failed", type: "error" }]);
         }
       };
-
 
       return (
         <div className="max-w-10xl mx-auto font-sans">
@@ -228,23 +229,47 @@
                         <th className="p-2 text-left">Actions</th>
                       </tr>
                     </thead>
+
                     <tbody>
                       {uncreatedRequests.map((req) => (
                         <tr key={req.id} className="border-b border-gray-200">
                           <td className="p-2">{req.topic_name}</td>
                           <td className="p-2">{req.partitions}</td>
-                          <td className="p-2">{req.status}</td>
+
+                          {/* Status with color */}
+                          <td className="p-2">
+                            <span
+                              className={`px-2 py-1 rounded text-sm font-medium ${
+                                req.status === "APPROVED"
+                                  ? "bg-green-100 text-green-700"
+                                  : req.status === "PENDING"
+                                  ? "bg-yellow-100 text-yellow-700"
+                                  : "bg-red-100 text-red-700"
+                              }`}
+                            >
+                              {req.status}
+                            </span>
+                          </td>
+
+                          {/* Action button */}
                           <td className="p-2">
                             <button
                               onClick={() => handleCreateTopic(req.id)}
-                              className="bg-green-600 hover:bg-green-700 text-white px-3 py-1 rounded text-sm"
+                              disabled={req.status !== "APPROVED"} // only active when approved
+                              className={`px-3 py-1 rounded text-sm text-white ${
+                                req.status === "APPROVED"
+                                  ? "bg-green-600 hover:bg-green-700"
+                                  : "bg-gray-400 cursor-not-allowed"
+                              }`}
                             >
-                              Create topic
+                              Create Topic
                             </button>
                           </td>
                         </tr>
                       ))}
                     </tbody>
+
+                    
                   </table>
                 ) : (
                   <p className="text-gray-500 text-center">
